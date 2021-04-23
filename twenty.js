@@ -4,6 +4,16 @@
 
 var child_process = require("child_process");
 var p;
+var isRunning = false;
+var waitTimer;
+var activityChecker = require("./activeRecently.js")({
+    checkTime: 1000 * 60 * 3,
+    inactivityTime: 1000 * 60,
+    startActive: true,
+    checkForNewDevices: false,
+    onActive: onActive,
+    onInactive: onInactive,
+});
 
 function textNotify(title, text, timeout, type, log)
 {
@@ -64,7 +74,7 @@ function getVolumeLevel()
 
 function wait(cb, amt)
 {
-    setTimeout(cb, typeof amt === "number" ? amt : 1000 * 60 * 20);
+    waitTimer = setTimeout(cb, typeof amt === "number" ? amt : 1000 * 60 * 20);
 }
 
 function beep(message)
@@ -132,19 +142,44 @@ function systemdInstall()
     });
 }
 
+function onInactive()
+{
+    stop();
+}
+
+
+function onActive()
+{
+    start();
+}
+
+function start()
+{
+    if (!isRunning) {
+        isRunning = true;
+        wait(function ()
+        {
+            beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)");
+            wait(function ()
+            {
+                beep("Continue on. :)");
+                isRunning = false;
+                start();
+            }, 1000 * 20)
+        });
+    }
+}
+
+function stop()
+{
+    if (isRunning) {
+        isRunning = false;
+        clearTimeout(waitTimer);
+    }
+}
+
 if (process.argv[2] === "install") {
     return systemdInstall();
 }
 
-(function loop()
-{
-    wait(function ()
-    {
-        beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)");
-        wait(function ()
-        {
-            beep("Continue on. :)");
-            loop();
-        }, 1000 * 20)
-    });
-}());
+start();
