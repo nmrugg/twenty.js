@@ -16,6 +16,7 @@ function init(options)
     var onChange;
     var onActive;
     var onInactive;
+    var debugging;
     
     function stopListening()
     {
@@ -101,6 +102,9 @@ function init(options)
                         //console.log(path, "has data");
                         clearTimeout(inactivityTimer);
                         active = true;
+                        if (debugging) {
+                            console.log("Active", (new Date()).toString());
+                        }
                         stopListening();
                         delayCheck();
                         
@@ -162,6 +166,9 @@ function init(options)
             {
                 //console.log("inactive")
                 active = false;
+                if (debugging) {
+                    console.log("Inactive", (new Date()).toString());
+                }
                 if (onInactive) {
                     setImmediate(onInactive);
                 }
@@ -171,6 +178,10 @@ function init(options)
             }
             
             inactivityTimer = setTimeout(setInactive, inactivityTime);
+            
+            if (debugging) {
+                console.log("Listening", (new Date()).toString());
+            }
         }
     }
     
@@ -204,6 +215,8 @@ function init(options)
         }
         
         onlyUseSpecified = Boolean(options.onlyUseSpecified);
+        
+        debugging = Boolean(options.debugging);
         
         if (typeof options.onActive === "function") {
             onActive = options.onActive;

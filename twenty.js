@@ -6,6 +6,7 @@ var child_process = require("child_process");
 var p;
 var isRunning = false;
 var waitTimer;
+var debugging = true;
 var activityChecker = require("./activeRecently.js")({
     checkTime: 1000 * 60 * 3,
     inactivityTime: 1000 * 60,
@@ -13,6 +14,7 @@ var activityChecker = require("./activeRecently.js")({
     checkForNewDevices: false,
     onActive: onActive,
     onInactive: onInactive,
+    debugging: debugging,
 });
 
 function textNotify(title, text, timeout, type, log)
@@ -156,12 +158,21 @@ function onActive()
 function start()
 {
     if (!isRunning) {
+        if (debugging) {
+            console.log("waiting...", (new Date()).toString());
+        }
         isRunning = true;
         wait(function ()
         {
+            if (debugging) {
+                console.log("altering to look", (new Date()).toString());
+            }
             beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)");
             wait(function ()
             {
+                if (debugging) {
+                    console.log("done", (new Date()).toString());
+                }
                 beep("Continue on. :)");
                 isRunning = false;
                 start();
@@ -175,6 +186,9 @@ function stop()
     if (isRunning) {
         isRunning = false;
         clearTimeout(waitTimer);
+        if (debugging) {
+            console.log("stopped");
+        }
     }
 }
 
