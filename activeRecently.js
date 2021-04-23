@@ -206,11 +206,11 @@ function init(options)
         onlyUseSpecified = Boolean(options.onlyUseSpecified);
         
         if (typeof options.onActive === "function") {
-            onChange = options.onActive;
+            onActive = options.onActive;
         }
         
         if (typeof options.onInactive === "function") {
-            onChange = options.onInactive;
+            onInactive = options.onInactive;
         }
         
         if (typeof options.onChange === "function") {
