@@ -6,6 +6,7 @@ var child_process = require("child_process");
 var p;
 var isRunning = false;
 var waitTimer;
+var standbyDetectorTimer;
 var debugging = true;
 var activityChecker = require("./activeRecently.js")({
     checkTime: 1000 * 60 * 3,
@@ -16,6 +17,8 @@ var activityChecker = require("./activeRecently.js")({
     onInactive: onInactive,
     debugging: debugging,
 });
+var waitTimeBetweenLooks = 1000 * 60 * 20;
+var lookDuration = 1000 * 20;
 
 function textNotify(title, text, timeout, type, log)
 {
@@ -76,7 +79,29 @@ function getVolumeLevel()
 
 function wait(cb, amt)
 {
-    waitTimer = setTimeout(cb, typeof amt === "number" ? amt : 1000 * 60 * 20);
+    waitTimer = setTimeout(cb, typeof amt === "number" ? amt : waitTimeBetweenLooks);
+}
+
+function standbyDetector()
+{
+    var lastTime = Date.now();
+    var waitTime = 1000 * 30;
+    
+    standbyDetectorTimer = setInterval(function detect()
+    {
+        var time = Date.now();
+        
+        /// If there has been a big delay, the computer was probably in standby. So, stop and restart the timer.
+        if (isRunning && time - (lastTime + waitTime) > 2000) {
+            if (debugging) {
+                console.log("timeout detected", (new Date()).toString());
+            }
+            stop();
+            start();
+        }
+        
+        lastTime = time;
+    }, waitTime);
 }
 
 function beep(message)
@@ -162,10 +187,11 @@ function start()
             console.log("waiting...", (new Date()).toString());
         }
         isRunning = true;
+        standbyDetector();
         wait(function ()
         {
             if (debugging) {
-                console.log("altering to look", (new Date()).toString());
+                console.log("Alerting to look", (new Date()).toString());
             }
             beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)");
             wait(function ()
@@ -176,8 +202,8 @@ function start()
                 beep("Continue on. :)");
                 isRunning = false;
                 start();
-            }, 1000 * 20)
-        });
+            }, lookDuration);
+        }, waitTimeBetweenLooks);
     }
 }
 
@@ -186,6 +212,7 @@ function stop()
     if (isRunning) {
         isRunning = false;
         clearTimeout(waitTimer);
+        clearInterval(standbyDetectorTimer);
         if (debugging) {
             console.log("stopped");
         }
