@@ -193,22 +193,25 @@ function start()
         }
         isRunning = true;
         standbyDetector();
-        wait(function ()
+        
+        (function loop()
         {
-            if (debugging) {
-                console.log("Alerting to look", (new Date()).toString());
-            }
-            beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)");
             wait(function ()
             {
                 if (debugging) {
-                    console.log("done", (new Date()).toString());
+                    console.log("Alerting to look", (new Date()).toString());
                 }
-                beep("Continue on. :)");
-                isRunning = false;
-                start();
-            }, lookDuration);
-        }, waitTimeBetweenLooks);
+                beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)");
+                wait(function ()
+                {
+                    if (debugging) {
+                        console.log("done", (new Date()).toString());
+                    }
+                    beep("Continue on. :)");
+                    loop();
+                }, lookDuration);
+            }, waitTimeBetweenLooks);
+        }());
     }
 }
 
