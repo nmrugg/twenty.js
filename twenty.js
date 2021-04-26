@@ -90,6 +90,8 @@ function standbyDetector()
     if (debugging) {
         console.log("Starting timeout detection", (new Date()).toString());
     }
+    /// Clear the timer for good measure.
+    clearInterval(standbyDetectorTimer);
     standbyDetectorTimer = setInterval(function detect()
     {
         var time = Date.now();
