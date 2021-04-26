@@ -87,14 +87,19 @@ function standbyDetector()
     var lastTime = Date.now();
     var waitTime = 1000 * 30;
     
+    if (debugging) {
+        console.log("Starting timeout detection", (new Date()).toString());
+    }
     standbyDetectorTimer = setInterval(function detect()
     {
         var time = Date.now();
-        
+        if (debugging) {
+            console.log(time, "-", "(" + lastTime + "+" + waitTime + ")", time - (lastTime + waitTime), (new Date()).toString());
+        }
         /// If there has been a big delay, the computer was probably in standby. So, stop and restart the timer.
         if (isRunning && time - (lastTime + waitTime) > 2000) {
             if (debugging) {
-                console.log("timeout detected", (new Date()).toString());
+                console.log("Timeout detected", (new Date()).toString());
             }
             stop();
             start();
@@ -213,6 +218,9 @@ function stop()
         isRunning = false;
         clearTimeout(waitTimer);
         clearInterval(standbyDetectorTimer);
+        if (debugging) {
+            console.log("Clearing timeout detection", (new Date()).toString());
+        }
         if (debugging) {
             console.log("stopped");
         }
