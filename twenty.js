@@ -7,7 +7,7 @@ var p;
 var isRunning = false;
 var waitTimer;
 var standbyDetectorTimer;
-var debugging = true;
+var debugging = false;
 var activityChecker = require("./activeRecently.js")({
     checkTime: 1000 * 60 * 3,
     inactivityTime: 1000 * 60,
