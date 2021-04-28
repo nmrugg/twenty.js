@@ -209,7 +209,7 @@ function start()
                     if (debugging) {
                         console.log("done", (new Date()).toString());
                     }
-                    beep("Continue on. :)");
+                    beep("Carry on. :)");
                     loop();
                 }, lookDuration);
             }, waitTimeBetweenLooks);
