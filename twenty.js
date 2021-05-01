@@ -204,14 +204,18 @@ function start()
                     console.log("Alerting to look", (new Date()).toString());
                 }
                 beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)");
-                wait(function ()
+                
+                /// We separate the beep and the loop so that it will always beep but not always loop (if it gets canceled)
+                setTimeout(function ()
                 {
                     if (debugging) {
                         console.log("done", (new Date()).toString());
                     }
                     beep("Carry on. :)");
-                    loop();
-                }, lookDuration);
+                }, lookDuration).unref();
+                
+                /// This will get canceled if stopping while waiting for the beep.
+                wait(loop, lookDuration);
             }, waitTimeBetweenLooks);
         }());
     }
