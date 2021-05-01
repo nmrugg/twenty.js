@@ -9,8 +9,8 @@ var waitTimer;
 var standbyDetectorTimer;
 var debugging = false;
 var activityChecker = require("./activeRecently.js")({
-    checkTime: 1000 * 60 * 3,
-    inactivityTime: 1000 * 60,
+    checkTime: 1000 * 60 * 5,
+    inactivityTime: 1000 * 60 * 3,
     startActive: true,
     checkForNewDevices: false,
     onActive: onActive,
