@@ -20,27 +20,14 @@ function init(options)
     
     function stopListening()
     {
-        procs.forEach(function (proc)
-        {
-            proc.stdin.pause();
-            proc.kill();
-            //process.kill(proc.pid);
-            
-        });
-        /*
-        streams.forEach(function (stream)
-        {
-            //stream.close();
-            stream.destroy();
-        });
-        */
-        /*
-        fds.forEach(function (fd)
-        {
-            console.log(fd)
-            fs.closeSync(fd);
-        });
-        */
+        if (procs) {
+            procs.forEach(function (proc)
+            {
+                proc.stdin.pause();
+                proc.kill();
+                //process.kill(proc.pid);
+            });
+        }
     }
     
     function check()
@@ -49,9 +36,6 @@ function init(options)
         var eventFiles = ["/dev/input/mice"];
         var p;
         var fs;
-        //var streams;
-        //var fds;
-        
         
         if (onlyUseSpecified && specifiedEventPaths) {
             eventFiles = specifiedEventPaths;
@@ -86,12 +70,10 @@ function init(options)
         function listenToFiles()
         {
             var alreadyHaveActivity;
-            //streams = [];
-            //fds = [];
+            
             procs = [];
             eventFiles.forEach(function (path)
             {
-                //var proc = execFile("head", ["-c", "1", path], function ondone(err, stdout, stderr)
                 var proc = spawn("cat", [path], {stdio: "pipe"});
                 procs.push(proc);
                 
@@ -116,47 +98,10 @@ function init(options)
                         }
                     }
                 });
-                
-                //proc.on("error", function (e){console.error(e)});
+                /*
                 proc.on("exit", function ()
                 {
-                    //console.log("closed", path);
-                });
-                /*
-                var stream = fs.createReadStream(path);
-                streams.push(stream);
-                //console.log(path)
-                //stream.resume();
-                stream.on("data", function (data)
-                {
-                    if (!alreadyHaveActivity) {
-                        alreadyHaveActivity = true;
-                        console.log(path, "has data");
-                        //console.log(JSON.stringify(data));
-                        console.log("is active");
-                        active = true;
-                        clearTimeout(inactivityTimer);
-                        stopListening();
-                        delayCheck();
-                    }
-                });
-                */
-                /*
-                var fd = fs.openSync(path);
-                var buf = Buffer.alloc(200);
-                fds.push(fd);
-                fs.read(fd, buf, 0, 200, 0, function ()
-                {
-                    console.log(buf)
-                    if (!alreadyHaveActivity) {
-                        console.log(path, "has data");
-                        console.log("is active");
-                        active = true;
-                        alreadyHaveActivity = true;
-                        clearTimeout(inactivityTimer);
-                        stopListening();
-                        delayCheck();
-                    }
+                    console.log("closed", path);
                 });
                 */
                 /// head -c 1 /dev/input/mice
@@ -164,7 +109,6 @@ function init(options)
             
             function setInactive()
             {
-                //console.log("inactive")
                 active = false;
                 if (debugging) {
                     console.log("Inactive", (new Date()).toString());
@@ -190,7 +134,6 @@ function init(options)
         delayCheckTimer = setTimeout(check, wait || checkTime);
     }
     
-    //function start(startActive, _checkTime, _specifiedEventPaths, _onlyUseSpecified)
     function start(options)
     {
         options = options || {};

@@ -237,7 +237,9 @@ function stop()
 }
 
 if (process.argv[2] === "install") {
-    return systemdInstall();
+    activityChecker.stop();
+    systemdInstall();
+    return;
 }
 
 start();
