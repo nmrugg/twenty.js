@@ -7,40 +7,15 @@ var p;
 var isRunning = false;
 var waitTimer;
 var standbyDetectorTimer;
-var debugging = false;
-var activityChecker = require("./activeRecently.js")({
-    checkTime: 1000 * 60 * 5,
-    inactivityTime: 1000 * 60 * 3,
-    startActive: true,
-    checkForNewDevices: false,
-    onActive: onActive,
-    onInactive: onInactive,
-    debugging: debugging,
-});
-var waitTimeBetweenLooks = 1000 * 60 * 20;
-var lookDuration = 1000 * 20;
+var debugging;
+var activityChecker;
+var waitTimeBetweenLooks;
+var lookDuration;
+var config;
 
-function textNotify(title, text, timeout, type, log)
+function textNotify(title, text)
 {
     var args = [];
-    var logger = console.log;
-    
-    if (!timeout) {
-        timeout = 5000;
-    }
-    
-    args.push("-t", String(timeout));
-    
-    if (type) {
-        if (type === "error" || type === "fail") {
-            args.push("-i", "/opt/trinity/share/icons/crystalsvg/16x16/actions/button_cancel.png");
-            logger = console.error;
-        } else if (type === "ok" || type === "good") {
-            args.push("-i", "/opt/trinity/share/icons/crystalsvg/16x16/actions/button_ok.png");
-        } else {
-            args.push("-i", type);
-        }
-    }
     
     args.push(title || " ");
     
@@ -53,14 +28,26 @@ function textNotify(title, text, timeout, type, log)
     args.push('-h');
     args.push('string:x-canonical-private-synchronous:anything');
     
-    child_process.execFile("notify-send", args, function () {});
+    try {
+        child_process.execFile("notify-send", args, function () {});
+    } catch (e) {
+        console.log(e);
+    }
 }
 
-function audioNotify()
+function audioNotify(type)
 {
+    var audioFilePath;
     p = p || require("path");
+    if (type === "start" && config.notifyStart) {
+        audioFilePath = config.notifyStart;
+    } else if (type !== "start" && config.notifyEnd) {
+        audioFilePath = config.notifyEnd;
+    } else {
+        audioFilePath = p.join(__dirname, (type === "start" ? "notify-start.mp3" : "notify-end.mp3"));
+    }
     /// notification.mp3 is a public domain sound file from https://freesound.org/people/cabled_mess/sounds/349503/
-    child_process.execFile("play", [p.join(__dirname, "notification.mp3")], {stdio: "ignore"}, function (){}).unref();
+    child_process.execFile("play", [audioFilePath], {stdio: "ignore"}, function (){}).unref();
 }
 
 function getVolumeLevel()
@@ -111,10 +98,10 @@ function standbyDetector()
     }, waitTime);
 }
 
-function beep(message)
+function beep(message, type)
 {
     //process.stdout.write("\u0007");
-    audioNotify();
+    audioNotify(type);
     /// If the volume is too low, you can't hear the beep, so display a message.
     if (getVolumeLevel() < 75) {
         textNotify("20-20-20", message);
@@ -203,7 +190,7 @@ function start()
                 if (debugging) {
                     console.log("Alerting to look", (new Date()).toString());
                 }
-                beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)");
+                beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)", "start");
                 
                 /// We separate the beep and the loop so that it will always beep but not always loop (if it gets canceled)
                 setTimeout(function ()
@@ -211,7 +198,7 @@ function start()
                     if (debugging) {
                         console.log("done", (new Date()).toString());
                     }
-                    beep("Carry on. :)");
+                    beep("Carry on. :)", "end");
                 }, lookDuration).unref();
                 
                 /// This will get canceled if stopping while waiting for the beep.
@@ -237,9 +224,33 @@ function stop()
 }
 
 if (process.argv[2] === "install") {
-    activityChecker.stop();
     systemdInstall();
     return;
 }
 
-start();
+function init()
+{
+    try {
+        config = require("./config.js");
+    } catch(e) {}
+    
+    config = config || {};
+    
+    waitTimeBetweenLooks = config.waitTimeBetweenLooks || 1000 * 60 * 20;
+    lookDuration = config.lookDuration || 1000 * 20;
+    debugging = Boolean(config.debugging);
+    
+    activityChecker = require("./activeRecently.js")({
+        checkTime: config.checkTime || 1000 * 60 * 2,
+        inactivityTime: config.inactivityTime || 1000 * 60 * 3,
+        startActive: true,
+        checkForNewDevices: false,
+        onActive: onActive,
+        onInactive: onInactive,
+        debugging: debugging,
+    });
+    
+    start();
+}
+
+init();
