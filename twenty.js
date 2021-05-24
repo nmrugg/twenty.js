@@ -124,7 +124,6 @@ function inSlienceMode()
     var locks;
     
     if (config.silenceOn) {
-        config.silenceOn = config.silenceOn.toLowerCase().replace(/\s*lock$/, "");
         locks = getLocks();
         if (locks.num && config.silenceOn === "num" || locks.caps && config.silenceOn === "caps" || locks.caps && config.silenceOn === "cap" || locks.scroll && config.silenceOn === "scroll" || locks.shift && config.silenceOn === "shift") {
             return true;
@@ -135,13 +134,10 @@ function inSlienceMode()
 
 function beep(message, type)
 {
-    if (!inSlienceMode()) {
-        //process.stdout.write("\u0007");
-        audioNotify(type);
-        /// If the volume is too low, you can't hear the beep, so display a message.
-        if (getVolumeLevel() < 75) {
-            textNotify("20-20-20", message);
-        }
+    audioNotify(type);
+    /// If the volume is too low, you can't hear the beep, so display a message.
+    if (getVolumeLevel() < 75) {
+        textNotify("20-20-20", message);
     }
 }
 
@@ -227,16 +223,21 @@ function start()
                 if (debugging) {
                     console.log("Alerting to look", (new Date()).toString());
                 }
-                beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)", "start");
                 
-                /// We separate the beep and the loop so that it will always beep but not always loop (if it gets canceled)
-                setTimeout(function ()
-                {
-                    if (debugging) {
-                        console.log("done", (new Date()).toString());
-                    }
-                    beep("Carry on. :)", "end");
-                }, lookDuration).unref();
+                if (!inSlienceMode()) {
+                    beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)", "start");
+                    
+                    /// We separate the beep and the loop so that it will always beep but not always loop (if it gets canceled)
+                    setTimeout(function ()
+                    {
+                        if (debugging) {
+                            console.log("done", (new Date()).toString());
+                        }
+                        if (!inSlienceMode()) {
+                            beep("Carry on. :)", "end");
+                        }
+                    }, lookDuration).unref();
+                }
                 
                 /// This will get canceled if stopping while waiting for the beep.
                 wait(loop, lookDuration);
@@ -272,6 +273,11 @@ function init()
     } catch(e) {}
     
     config = config || {};
+    
+    /// Normalize silenceOn (e.g., convert "num lock" to "num"
+    if (config.silenceOn) {
+        config.silenceOn = config.silenceOn.toLowerCase().replace(/\s*lock$/, "");
+    }
     
     waitTimeBetweenLooks = config.waitTimeBetweenLooks || 1000 * 60 * 20;
     lookDuration = config.lookDuration || 1000 * 20;
