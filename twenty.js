@@ -270,7 +270,12 @@ function init()
 {
     try {
         config = require("./config.js");
-    } catch(e) {}
+    } catch(e) {
+        /// Load the distributed config
+        try {
+            config = require("./config-dist.js");
+        } catch(e) {}
+    }
     
     config = config || {};
     
@@ -284,7 +289,7 @@ function init()
     debugging = Boolean(config.debugging);
     
     activityChecker = require("./activeRecently.js")({
-        checkTime: config.checkTime || 1000 * 60 * 2,
+        checkTime: config.checkTime || 1000 * 60 * 5,
         inactivityTime: config.inactivityTime || 1000 * 60 * 3,
         startActive: true,
         checkForNewDevices: false,
