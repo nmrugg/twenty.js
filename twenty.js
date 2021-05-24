@@ -98,13 +98,50 @@ function standbyDetector()
     }, waitTime);
 }
 
+
+function getLocks()
+{
+    var data = "";
+    var matches;
+    var locks = {};
+    try {
+        data = child_process.execSync("xset q", {encoding: "utf8", stdio: "pipe"});
+    } catch (e) {}
+    matches = data.match(/(\S+)\s+Lock:\s+(on|off)/ig);
+    if (matches) {
+        matches.forEach(function (match)
+        {
+            var matches = match.match(/(\S+)\s+Lock:\s+(on|off)/i);
+            locks[matches[1].toLowerCase()] = matches[2].toLowerCase() === "on";
+        });
+    }
+    
+    return locks;
+}
+
+function inSlienceMode()
+{
+    var locks;
+    
+    if (config.silenceOn) {
+        config.silenceOn = config.silenceOn.toLowerCase().replace(/\s*lock$/, "");
+        locks = getLocks();
+        if (locks.num && config.silenceOn === "num" || locks.caps && config.silenceOn === "caps" || locks.caps && config.silenceOn === "cap" || locks.scroll && config.silenceOn === "scroll" || locks.shift && config.silenceOn === "shift") {
+            return true;
+        }
+    }
+    return false;
+}
+
 function beep(message, type)
 {
-    //process.stdout.write("\u0007");
-    audioNotify(type);
-    /// If the volume is too low, you can't hear the beep, so display a message.
-    if (getVolumeLevel() < 75) {
-        textNotify("20-20-20", message);
+    if (!inSlienceMode()) {
+        //process.stdout.write("\u0007");
+        audioNotify(type);
+        /// If the volume is too low, you can't hear the beep, so display a message.
+        if (getVolumeLevel() < 75) {
+            textNotify("20-20-20", message);
+        }
     }
 }
 
