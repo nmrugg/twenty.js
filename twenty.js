@@ -7,7 +7,6 @@ var p;
 var isRunning = false;
 var waitTimer;
 var standbyDetectorTimer;
-var debugging;
 var activityChecker;
 var waitTimeBetweenLooks;
 var lookDuration;
@@ -74,7 +73,7 @@ function standbyDetector()
     var lastTime = Date.now();
     var waitTime = 1000 * 30;
     
-    if (debugging) {
+    if (config.debugging) {
         console.log("Starting standby detection", (new Date()).toString());
     }
     /// Clear the timer for good measure.
@@ -82,12 +81,12 @@ function standbyDetector()
     standbyDetectorTimer = setInterval(function detect()
     {
         var time = Date.now();
-        //if (debugging) {
+        //if (config.debugging) {
             //console.log(time, "-", "(" + lastTime + "+" + waitTime + ")", time - (lastTime + waitTime), (new Date()).toString());
         //}
         /// If there has been a big delay, the computer was probably in standby. So, stop and restart the timer.
         if (isRunning && time - (lastTime + waitTime) > 1000) {
-            if (debugging) {
+            if (config.debugging) {
                 console.log("Standby detected", (new Date()).toString());
             }
             stop();
@@ -210,7 +209,7 @@ function onActive()
 function start()
 {
     if (!isRunning) {
-        if (debugging) {
+        if (config.debugging) {
             console.log("waiting...", (new Date()).toString());
         }
         isRunning = true;
@@ -220,7 +219,7 @@ function start()
         {
             wait(function ()
             {
-                if (debugging) {
+                if (config.debugging) {
                     console.log("Alerting to look", (new Date()).toString());
                 }
                 
@@ -230,13 +229,19 @@ function start()
                     /// We separate the beep and the loop so that it will always beep but not always loop (if it gets canceled)
                     setTimeout(function ()
                     {
-                        if (debugging) {
+                        if (config.debugging) {
                             console.log("done", (new Date()).toString());
                         }
+                        
                         if (!inSlienceMode()) {
                             beep("Carry on. :)", "end");
+                        } else if (config.debugging) {
+                            console.log("Silence Mode on, not notifying", (new Date()).toString());
                         }
+                        
                     }, lookDuration).unref();
+                } else if (config.debugging) {
+                    console.log("Silence Mode on, not notifying", (new Date()).toString());
                 }
                 
                 /// This will get canceled if stopping while waiting for the beep.
@@ -252,10 +257,10 @@ function stop()
         isRunning = false;
         clearTimeout(waitTimer);
         clearInterval(standbyDetectorTimer);
-        if (debugging) {
+        if (config.debugging) {
             console.log("Clearing standby detection", (new Date()).toString());
         }
-        if (debugging) {
+        if (config.debugging) {
             console.log("stopped");
         }
     }
@@ -286,7 +291,7 @@ function init()
     
     waitTimeBetweenLooks = config.waitTimeBetweenLooks || 1000 * 60 * 20;
     lookDuration = config.lookDuration || 1000 * 20;
-    debugging = Boolean(config.debugging);
+    config.debugging = Boolean(config.debugging);
     
     activityChecker = require("./activeRecently.js")({
         checkTime: config.checkTime || 1000 * 60 * 5,
@@ -295,7 +300,7 @@ function init()
         checkForNewDevices: false,
         onActive: onActive,
         onInactive: onInactive,
-        debugging: debugging,
+        debugging: config.debugging,
     });
     
     start();
