@@ -175,8 +175,7 @@ function systemdInstall()
         "\n" +
         "\n" +
         "[Install]\n" +
-        "# start node at multi user system level (= sysVinit runlevel 3) \n" +
-        "WantedBy=multi-user.target";
+        "WantedBy=default.target\n";
     var tempPath = "/tmp/twenty-install.temp";
     var child;
     
