@@ -251,7 +251,10 @@ function stop()
 }
 
 if (process.argv[2] === "install") {
+    console.log("Installing twenty.js to start up automatically (in crontab).");
     install();
+    console.log("Starting twenty.js in the background.");
+    child_process.spawn(process.execPath, [__filename], {detached: true, stdio: "ignore"}).unref();
     return;
 }
 
