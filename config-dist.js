@@ -10,4 +10,5 @@ module.exports = {
     ///notifyEnd: require("path").join(__dirname, "notify-end.mp3"), /// The sound to play when looking is over
     ///silenceOn: "", /// Disable notifications when certain keys have been pressed; options are "caps lock", "num lock", "scroll lock", "shift lock" to silence notifications when those are on (leave blank to disable)
     ///debugging: false, /// Print debugging info
+    ///notifyVolumeLevel: 75, /// The volume level at which to send text notifications
 };

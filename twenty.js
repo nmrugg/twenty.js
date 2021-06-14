@@ -10,6 +10,7 @@ var standbyDetectorTimer;
 var activityChecker;
 var waitTimeBetweenLooks;
 var lookDuration;
+var notifyVolumeLevel;
 var config;
 
 function textNotify(title, text)
@@ -135,7 +136,7 @@ function beep(message, type)
 {
     audioNotify(type);
     /// If the volume is too low, you can't hear the beep, so display a message.
-    if (getVolumeLevel() < 75) {
+    if (getVolumeLevel() <= notifyVolumeLevel) {
         textNotify("20-20-20", message);
     }
 }
@@ -291,6 +292,12 @@ function init()
     waitTimeBetweenLooks = config.waitTimeBetweenLooks || 1000 * 60 * 20;
     lookDuration = config.lookDuration || 1000 * 20;
     config.debugging = Boolean(config.debugging);
+    
+    if (config.notifyVolumeLevel && typeof config.notifyVolumeLevel === "number" && config.notifyVolumeLevel >= 0 && config.notifyVolumeLevel <= 100) {
+        notifyVolumeLevel = config.notifyVolumeLevel;
+    } else {
+        notifyVolumeLevel = 75;
+    }
     
     activityChecker = require("./activeRecently.js")({
         checkTime: config.checkTime || 1000 * 60 * 5,
