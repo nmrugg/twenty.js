@@ -141,58 +141,42 @@ function beep(message, type)
     }
 }
 
-function systemdInstall()
+function installCron(cronjob, comment, logPath)
 {
-    var config =
-        "[Unit]\n" +
-        "Description=twenty\n" +
-        "\n" +
-        "[Service]\n" +
-        "# set the working directory to have consistent relative paths\n" +
-        "WorkingDirectory=" + __dirname + "\n" +
-        "\n" +
-        "# start the server file (file is relative to WorkingDirectory here)\n" +
-        "ExecStart=" + __filename + "\n" +
-        "\n" +
-        "# if process crashes, always try to restart\n" +
-        "Restart=always\n" +
-        "\n" +
-        "# let 500ms between the crash and the restart\n" +
-        "RestartSec=500ms\n" +
-        "\n" +
-        "# send log tot syslog here (it doesn't compete with other log config in the app itself)\n" +
-        "StandardOutput=syslog\n" +
-        "StandardError=syslog\n" +
-        "\n" +
-        "# nodejs process name in syslog\n" +
-        "SyslogIdentifier=twenty\n" +
-        "\n" +
-        "# user and group starting the app\n" +
-        "User=" + process.env.USER + "\n" +
-        "Group=" + process.env.USER + "\n" +
-        "\n" +
-        "# set the environement (dev, prod…)\n" +
-        "#Environment=NODE_ENV=production\n" +
-        "\n" +
-        "\n" +
-        "[Install]\n" +
-        "WantedBy=default.target\n";
-    var tempPath = "/tmp/twenty-install.temp";
-    var child;
+    var cronjobText = "";
+    var added;
     
-    require("fs").writeFileSync(tempPath, config);
+    /// Crontab fails if there are no jobs yet.
+    try {
+        cronjobText = child_process.execSync("crontab -l", {encoding: "utf8", env: process.env, cwd: __dirname});
+    } catch (e) {}
     
-    child = child_process.spawn("/usr/bin/sudo", ["mv", tempPath, "/etc/systemd/system/twenty.service"], {stdio: "inherit"});
-    child.on("close", function ()
-    {
-        console.log();
-        console.log("Installed.");
-        console.log("To start, run: sudo service twenty start");
-        console.log();
-        console.log("To start and stop without a password, run \"sudo visudo\" and add the following:");
-        console.log("ALL    ALL = (root) NOPASSWD: /usr/sbin/service twenty *");
-        console.log();
-    });
+    if (cronjobText.indexOf(cronjob) === -1) {
+        added = true;
+        
+        cronjobText = cronjobText.trim();
+        if (comment) {
+            cronjobText += "\n# " + comment;
+        }
+        cronjobText += "\n" + cronjob;
+        if (logPath) {
+            cronjobText += " > \"" + logPath + "\" 2>&1";
+            /// This will throw if the directory already exists.
+            try {
+                fs.mkdirSync(require("path").dirname(logPath));
+            } catch (e) {}
+        }
+        cronjobText += "\n";
+        
+        child_process.execSync("crontab -", {input: cronjobText, stdio: "pipe", encoding: "utf8", env: process.env, cwd: __dirname});
+    }
+    
+    return added;
+}
+
+function install()
+{
+    installCron("@reboot " + process.execPath + " \"" + __filename + "\"", "Installed by twenty.js on " + (new Date()).toString(), require("path").join(__dirname, ".cronlog.txt"));
 }
 
 function onInactive()
@@ -267,7 +251,7 @@ function stop()
 }
 
 if (process.argv[2] === "install") {
-    systemdInstall();
+    install();
     return;
 }
 
