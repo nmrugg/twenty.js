@@ -132,12 +132,23 @@ function inSlienceMode()
     return false;
 }
 
-function beep(message, type)
+function notify(type)
 {
+    var textMessage;
+    var volume = getVolumeLevel();
+    
     audioNotify(type);
-    /// If the volume is too low, you can't hear the beep, so display a message.
-    if (getVolumeLevel() <= notifyVolumeLevel) {
-        textNotify("20-20-20", message);
+    /// If the volume is too low, you can't hear the sound, so display a message.
+    if (volume <= notifyVolumeLevel) {
+        if (type === "end") {
+            textMessage = "Carry on. :)";
+        } else {
+            textMessage = "Stop and focus on something twenty feet away for 20sec.";
+            if (volume < 100) {
+                textMessage += "\n(Turn your volume up if you want to hear when time's up.)";
+            }
+        }
+        textNotify("20-20-20", textMessage);
     }
 }
 
@@ -208,9 +219,9 @@ function start()
                 }
                 
                 if (!inSlienceMode()) {
-                    beep("Stop and focus on something twenty feet away for 20sec.\n(Turn your volume up if you want to hear when time's up.)", "start");
+                    notify("start");
                     
-                    /// We separate the beep and the loop so that it will always beep but not always loop (if it gets canceled)
+                    /// We separate the notification and the loop so that it will always notify but not always loop (if it gets canceled)
                     setTimeout(function ()
                     {
                         if (config.debugging) {
@@ -218,7 +229,7 @@ function start()
                         }
                         
                         if (!inSlienceMode()) {
-                            beep("Carry on. :)", "end");
+                            notify("end");
                         } else if (config.debugging) {
                             console.log("Silence Mode on, not notifying", (new Date()).toString());
                         }
@@ -228,7 +239,7 @@ function start()
                     console.log("Silence Mode on, not notifying", (new Date()).toString());
                 }
                 
-                /// This will get canceled if stopping while waiting for the beep.
+                /// This will get canceled if stopping while waiting for the notification.
                 wait(loop, lookDuration);
             }, waitTimeBetweenLooks);
         }());
