@@ -47,7 +47,7 @@ function audioNotify(type)
         audioFilePath = p.join(__dirname, (type === "start" ? "notify-start.mp3" : "notify-end.mp3"));
     }
     /// notification.mp3 is a public domain sound file from https://freesound.org/people/cabled_mess/sounds/349503/
-    child_process.execFile("play", [audioFilePath], {stdio: "ignore"}, function (){}).unref();
+    child_process.execFile("/usr/bin/play", [audioFilePath], {stdio: "ignore"}, function (){}).unref();
 }
 
 function getVolumeLevel()
@@ -57,7 +57,7 @@ function getVolumeLevel()
     var volume;
     
     try {
-        output = child_process.execFileSync("amixer", {encoding: "utf8"});
+        output = child_process.execFileSync("/usr/bin/amixer", {encoding: "utf8"});
         match = output.match(/Master[\s\S]+?\[([\d.]+)%\]/);
         volume = Number(match[1]);
         if (volume >= 0) {
