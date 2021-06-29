@@ -56,11 +56,15 @@ function getVolumeLevel()
     var match;
     var volume;
     
-    output = child_process.execFileSync("amixer", {encoding: "utf8"});
-    match = output.match(/Master[\s\S]+?\[([\d.]+)%\]/);
-    volume = Number(match[1]);
-    if (volume >= 0) {
-        return volume;
+    try {
+        output = child_process.execFileSync("amixer", {encoding: "utf8"});
+        match = output.match(/Master[\s\S]+?\[([\d.]+)%\]/);
+        volume = Number(match[1]);
+        if (volume >= 0) {
+            return volume;
+        }
+    } catch (e) {
+        return 0;
     }
 }
 
