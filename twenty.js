@@ -187,7 +187,7 @@ function installCron(cronjob, comment, logPath)
 
 function install()
 {
-    installCron("@reboot export DISPLAY=:0 && " + process.execPath + " \"" + __filename + "\"", "Installed by twenty.js on " + (new Date()).toString(), require("path").join(__dirname, ".cronlog.txt"));
+    installCron("@reboot export " + process.execPath + " \"" + __filename + "\"", "Installed by twenty.js on " + (new Date()).toString(), require("path").join(__dirname, ".cronlog.txt"));
 }
 
 function onInactive()
