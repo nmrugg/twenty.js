@@ -30,7 +30,7 @@ function textNotify(title, text)
     args.push('string:x-canonical-private-synchronous:anything');
     
     try {
-        child_process.execFile("notify-send", args, function () {});
+        child_process.execFile("/usr/bin/notify-send", args, function () {});
     } catch (e) {
         console.log(e);
     }
