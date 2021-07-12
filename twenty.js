@@ -181,7 +181,7 @@ function installCron(cronjob, comment, logPath)
         }
         cronjobText += "\n" + cronjob;
         if (logPath) {
-            cronjobText += " > \"" + logPath + "\" 2>&1";
+            cronjobText += " > '" + logPath + "' 2>&1";
             /// This will throw if the directory already exists.
             try {
                 fs.mkdirSync(require("path").dirname(logPath));
@@ -197,7 +197,7 @@ function installCron(cronjob, comment, logPath)
 
 function install()
 {
-    installCron("@reboot export " + process.execPath + " \"" + __filename + "\"", "Installed by twenty.js on " + (new Date()).toString(), require("path").join(__dirname, ".cronlog.txt"));
+    installCron("@reboot XDG_RUNTIME_DIR=/run/user/" + process.getuid() + " '" + process.execPath + "' '" + __filename + "'", "Installed by twenty.js on " + (new Date()).toString(), require("path").join(__dirname, ".cronlog.txt"));
 }
 
 function onInactive()
