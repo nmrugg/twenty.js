@@ -7,6 +7,7 @@ var p;
 var isRunning = false;
 var waitTimer;
 var standbyDetectorTimer;
+var secondNotifyTimer;
 var activityChecker;
 var waitTimeBetweenLooks;
 var lookDuration;
@@ -94,8 +95,13 @@ function standbyDetector()
             if (config.debugging) {
                 console.log("Standby detected", (new Date()).toString());
             }
+            /// Stop and restart when coming out of standby.
             stop();
             start();
+            /// Stop the second ring too, if any, if there was a long pause.
+            if (time - (lastTime + waitTime) > lookDuration) {
+                clearTimeout(secondNotifyTimer);
+            }
         }
         
         lastTime = time;
@@ -226,7 +232,7 @@ function start()
                     notify("start");
                     
                     /// We separate the notification and the loop so that it will always notify but not always loop (if it gets canceled)
-                    setTimeout(function ()
+                    secondNotifyTimer = setTimeout(function ()
                     {
                         if (config.debugging) {
                             console.log("done", (new Date()).toString());
