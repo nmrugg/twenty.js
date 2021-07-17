@@ -115,7 +115,7 @@ function getLocks()
     var matches;
     var locks = {};
     try {
-        data = child_process.execSync("xset q", {encoding: "utf8", stdio: "pipe"});
+        data = child_process.execSync("/usr/bin/xset q", {encoding: "utf8", stdio: "pipe"});
     } catch (e) {}
     matches = data.match(/(\S+)\s+Lock:\s+(on|off)/ig);
     if (matches) {
