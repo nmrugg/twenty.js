@@ -190,6 +190,8 @@ function installCron(cronjob, comment, logPath)
         cronjobText += "\n";
         
         child_process.execSync("crontab -", {input: cronjobText, stdio: "pipe", encoding: "utf8", env: process.env, cwd: __dirname});
+    } else {
+        console.log("Cronjob already installed");
     }
     
     return added;
@@ -197,7 +199,8 @@ function installCron(cronjob, comment, logPath)
 
 function install()
 {
-    installCron("@reboot XDG_RUNTIME_DIR=/run/user/" + process.getuid() + " '" + process.execPath + "' '" + __filename + "'", "Installed by twenty.js on " + (new Date()).toString(), require("path").join(__dirname, ".cronlog.txt"));
+    ///NOTE: xset needs DISPLAY set properly and notify-send needs XDG_RUNTIME_DIR.
+    installCron("@reboot DISPLAY=" + (process.env.DISPLAY || ":0") + " XDG_RUNTIME_DIR=/run/user/" + process.getuid() + " '" + process.execPath + "' '" + __filename + "'", "Installed by twenty.js on " + (new Date()).toString(), require("path").join(__dirname, ".cronlog.txt"));
 }
 
 function onInactive()
@@ -281,7 +284,7 @@ function runInBackground()
 }
 
 if (process.argv[2] === "install") {
-    console.log("Installing twenty.js to start up automatically (in crontab).");
+    console.log("Installing twenty.js to start up automatically (in crontab)");
     install();
     runInBackground();
     return;
