@@ -13,6 +13,60 @@ var waitTimeBetweenLooks;
 var lookDuration;
 var notifyVolumeLevel;
 var config;
+var programs = {
+    audio: [
+        "play",
+        "mpg123",
+        "mplayer",
+        "ffplay",
+        "audacious",
+    ],
+    notify: [
+        "notify-send",
+        "zenity",
+        "xmessage",
+    ],
+    volume: ["amixer"],
+    keys: ["xset"],
+};
+var warnings = {
+    audio: "Twenty.js is unable to play audio. Please install an audio player. Example: sudo apt-get install sox -y",
+    notify: "Twenty.js is unable to send notifications. Please install a notifier. Example: sudo apt-get install notification-daemon -y",
+    keys: "Twenty.js is unable to detect key lock status. Please install xset. Example: sudo apt-get install x11-xserver-utils -y",
+    volume: "Twenty.js is unable to detect audio levels. Please install amixer. Example: sudo apt-get install alsa-utils",
+};
+
+function playAudio(audioFilePath)
+{
+    child_process.execFile("/usr/bin/play", [audioFilePath], {stdio: "pipe"}, function (err)
+    {
+        if (err) {
+            child_process.execFile("/usr/bin/mpg123", [audioFilePath], {stdio: "pipe"}, function (err)
+            {
+                if (err) {
+                    if (err) {
+                        child_process.execFile("/usr/bin/mplayer", [audioFilePath], {stdio: "pipe"}, function (err)
+                        {
+                            if (err) {
+                                child_process.execFile("/usr/bin/ffplay", ["-nodisp", "-autoexit", "-loglevel", "quiet", audioFilePath], function (err)
+                                {
+                                    if (err) {
+                                        if (err) {
+                                            child_process.execFile("/usr/bin/audacious", ["-Hq", audioFilePath], {stdio: "ignore"}, function (err)
+                                            {
+                                                /// Cannot play audio.
+                                            }).unref();
+                                        }
+                                    }
+                                }).unref();
+                            }
+                        }).unref();
+                    }
+                }
+            }).unref();
+        }
+    }).unref();
+}
 
 function textNotify(title, text)
 {
@@ -29,11 +83,20 @@ function textNotify(title, text)
     args.push('-h');
     args.push('string:x-canonical-private-synchronous:anything');
     
-    try {
-        child_process.execFile("/usr/bin/notify-send", args, function () {});
-    } catch (e) {
-        console.log(e);
-    }
+    child_process.execFile("/usr/bin/notify-send", args, function (err)
+    {
+        if (err) {
+            child_process.execFile("/usr/bin/zenity", ["--notification", "--text", text, "--timeout=5"], function (err)
+            {
+                if (err) {
+                    child_process.execFile("/usr/bin/xmessage", ["-timeout", "5", text], function (err)
+                    {
+                        /// Cannot send notification
+                    });
+                }
+            });
+        }
+    });
 }
 
 function audioNotify(type)
@@ -48,7 +111,7 @@ function audioNotify(type)
         audioFilePath = p.join(__dirname, (type === "start" ? "notify-start.mp3" : "notify-end.mp3"));
     }
     /// notification.mp3 is a public domain sound file from https://freesound.org/people/cabled_mess/sounds/349503/
-    child_process.execFile("/usr/bin/play", [audioFilePath], {stdio: "ignore"}, function (){}).unref();
+    playAudio(audioFilePath);
 }
 
 function getVolumeLevel()
@@ -283,6 +346,27 @@ function runInBackground()
     child.unref();
 }
 
+function checkPrograms()
+{
+    Object.keys(programs).forEach(function (type)
+    {
+        var programsArr = programs[type];
+        var len = programsArr.length;
+        var i;
+        var found = false;
+        for (i = 0; i < len; ++i) {
+            try {
+                child_process.execSync("command -v /usr/bin/" + programsArr[i]);
+                found = true;
+                break;
+            } catch (e) {}
+        }
+        if (!found) {
+            console.error(warnings[type]);
+        }
+    });
+}
+
 if (process.argv[2] === "install") {
     console.log("Installing twenty.js to start up automatically (in crontab)");
     install();
@@ -331,4 +415,5 @@ function init()
     start();
 }
 
+checkPrograms();
 init();
