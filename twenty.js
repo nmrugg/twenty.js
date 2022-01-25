@@ -150,27 +150,21 @@ function standbyDetector()
     standbyDetectorTimer = setInterval(function detect()
     {
         var time = Date.now();
-        //if (config.debugging) {
-            //console.log(time, "-", "(" + lastTime + "+" + waitTime + ")", time - (lastTime + waitTime), (new Date()).toString());
-        //}
         /// If there has been a big delay, the computer was probably in standby. So, stop and restart the timer.
         if (isRunning && time - (lastTime + waitTime) > 1000) {
             if (config.debugging) {
                 console.log("Standby detected", (new Date()).toString());
             }
             /// Stop and restart when coming out of standby.
+            /// Stop the second ring too, if any.
+            clearTimeout(secondNotifyTimer);
             stop();
             start();
-            /// Stop the second ring too, if any, if there was a long pause.
-            if (time - (lastTime + waitTime) > lookDuration) {
-                clearTimeout(secondNotifyTimer);
-            }
         }
         
         lastTime = time;
     }, waitTime);
 }
-
 
 function getLocks()
 {
@@ -290,6 +284,8 @@ function start()
         {
             wait(function ()
             {
+                var time;
+                
                 if (config.debugging) {
                     console.log("Alerting to look", (new Date()).toString());
                 }
@@ -297,11 +293,20 @@ function start()
                 if (!inSlienceMode()) {
                     notify("start");
                     
+                    time = Date.now();
                     /// We separate the notification and the loop so that it will always notify but not always loop (if it gets canceled)
                     secondNotifyTimer = setTimeout(function ()
                     {
                         if (config.debugging) {
                             console.log("done", (new Date()).toString());
+                        }
+                        
+                        /// If there was a long pause, then the system may have been in stand by, so don't ring.
+                        if (Date.now() - time > lookDuration * 1.5) {
+                            if (config.debugging) {
+                                console.log("Long delay detected before the second notification; canceling.", (new Date()).toString());
+                            }
+                            return;
                         }
                         
                         if (!inSlienceMode()) {
