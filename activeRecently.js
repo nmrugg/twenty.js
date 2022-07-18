@@ -6,126 +6,74 @@ function init(options)
     var checkTime = 1000 * 15; /// Check every 15 seconds
     var inactivityTime = 1000 * 10; /// Mark as inactive if no activity found after 10 seconds
     var spawn = require("child_process").execFile;
-    var specifiedEventPaths;
-    var onlyUseSpecified;
     var inactivityTimer;
     var delayCheckTimer;
-    var procs;
     var listening = false;
-    var checkForNewDevices = true;
     var onChange;
     var onActive;
     var onInactive;
     var debugging;
+    var proc;
     
     function stopListening()
     {
-        if (procs) {
-            procs.forEach(function (proc)
-            {
-                proc.stdin.pause();
-                proc.kill();
-                //process.kill(proc.pid);
-            });
+        if (proc) {
+            proc.kill();
         }
     }
     
     function check()
     {
-        var dir = "/dev/input/by-path";
-        var eventFiles = ["/dev/input/mice"];
-        var p;
-        var fs;
+        var hasActivity = false;
         
-        if (onlyUseSpecified && specifiedEventPaths) {
-            eventFiles = specifiedEventPaths;
-            listenToFiles();
-        } else {
-            fs = require("fs");
-            p = require("path");
-            
-            if (specifiedEventPaths) {
-                eventFiles = eventFiles.concat(specifiedEventPaths);
-            }
-            fs.readdir(dir, function (err, files)
-            {
-                /// Get keyboard files
-                files.forEach(function (file)
-                {
-                    if (/-kbd$/.test(file)) {
-                        eventFiles.push(p.join(dir, file));
-                    }
-                });
-                
-                if (!checkForNewDevices) {
-                    /// Just use the ones we found now if we don't want to look for new devices just plugged in.
-                    specifiedEventPaths = eventFiles;
-                    onlyUseSpecified = true;
-                }
-                
-                listenToFiles();
-            });
-        }
+        /// Use xinput test-xi2 --root to test for activity.
+        /// Listenting directly to /dev/input sometimes requires root.
+        proc = spawn("xinput", ["test-xi2", "--root"], {stdio: "pipe", encoding: "utf8"});
         
-        function listenToFiles()
+        proc.stdout.on("data", function (data)
         {
-            var alreadyHaveActivity;
-            
-            procs = [];
-            eventFiles.forEach(function (path)
-            {
-                var proc = spawn("cat", [path], {stdio: "pipe"});
-                procs.push(proc);
+            if (!hasActivity && /\bEVENT type \d \(.*\)/.test(data)) {
+                /// This might be unnecessary.
+                hasActivity = true;
                 
-                proc.stdout.on("data", function ()
-                {
-                    if (!alreadyHaveActivity) {
-                        alreadyHaveActivity = true;
-                        //console.log(path, "has data");
-                        clearTimeout(inactivityTimer);
-                        active = true;
-                        if (debugging) {
-                            console.log("Active", (new Date()).toString());
-                        }
-                        stopListening();
-                        delayCheck();
-                        
-                        if (onActive) {
-                            setImmediate(onActive);
-                        }
-                        if (onChange) {
-                            setImmediate(onChange, {active: true});
-                        }
-                    }
-                });
-                /*
-                proc.on("exit", function ()
-                {
-                    console.log("closed", path);
-                });
-                */
-                /// head -c 1 /dev/input/mice
-            });
-            
-            function setInactive()
-            {
-                active = false;
                 if (debugging) {
-                    console.log("Inactive", (new Date()).toString());
+                    console.log("Active", (new Date()).toString());
                 }
-                if (onInactive) {
-                    setImmediate(onInactive);
+                
+                stopListening()
+                
+                active = true;
+                
+                if (onActive) {
+                    setImmediate(onActive);
                 }
                 if (onChange) {
-                    setImmediate(onChange, {active: false});
+                    setImmediate(onChange, {active: true});
                 }
+                
+                delayCheck();
             }
-            
-            inactivityTimer = setTimeout(setInactive, inactivityTime);
+        });
+        
+        function setInactive()
+        {
+            active = false;
             
             if (debugging) {
-                console.log("Listening", (new Date()).toString());
+                console.log("Inactive", (new Date()).toString());
             }
+            if (onInactive) {
+                setImmediate(onInactive);
+            }
+            if (onChange) {
+                setImmediate(onChange, {active: false});
+            }
+        }
+        
+        inactivityTimer = setTimeout(setInactive, inactivityTime);
+        
+        if (debugging) {
+            console.log("Listening", (new Date()).toString());
         }
     }
     
@@ -149,15 +97,9 @@ function init(options)
             active = options.startActive;
         }
         
-        if (typeof options.checkForNewDevices === "boolean") {
-            checkForNewDevices = options.checkForNewDevices;
-        }
-        
         if (Array.isArray(options.specifiedEventPaths)) {
             specifiedEventPaths = options.specifiedEventPaths;
         }
-        
-        onlyUseSpecified = Boolean(options.onlyUseSpecified);
         
         debugging = Boolean(options.debugging);
         

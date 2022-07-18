@@ -28,12 +28,14 @@ var programs = {
     ],
     volume: ["amixer"],
     keys: ["xset"],
+    activity: ["xinput"],
 };
 var warnings = {
     audio: "Twenty.js is unable to play audio. Please install an audio player. Example: sudo apt-get install sox -y",
     notify: "Twenty.js is unable to send notifications. Please install a notifier. Example: sudo apt-get install notification-daemon -y",
     keys: "Twenty.js is unable to detect key lock status. Please install xset. Example: sudo apt-get install x11-xserver-utils -y",
-    volume: "Twenty.js is unable to detect audio levels. Please install amixer. Example: sudo apt-get install alsa-utils",
+    volume: "Twenty.js is unable to detect audio levels. Please install amixer. Example: sudo apt-get install alsa-utils -y",
+    activity: "Twenty.js is unable to listen for user activity. Please install xinput.",
 };
 
 function playAudio(audioFilePath)
@@ -48,7 +50,7 @@ function playAudio(audioFilePath)
                         child_process.execFile("/usr/bin/mplayer", [audioFilePath], {stdio: "pipe"}, function (err)
                         {
                             if (err) {
-                                child_process.execFile("/usr/bin/ffplay", ["-nodisp", "-autoexit", "-loglevel", "quiet", audioFilePath], function (err)
+                                child_process.execFile("/usr/bin/ffplay", ["-nodisp", "-autoexit", "-loglevel", "quiet", audioFilePath], {stdio: "ignore"}, function (err)
                                 {
                                     if (err) {
                                         if (err) {
