@@ -337,8 +337,6 @@ function stop()
         clearInterval(standbyDetectorTimer);
         if (config.debugging) {
             console.log("Clearing standby detection", (new Date()).toString());
-        }
-        if (config.debugging) {
             console.log("stopped");
         }
     }

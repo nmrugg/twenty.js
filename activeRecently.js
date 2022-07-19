@@ -42,6 +42,8 @@ function init(options)
                 
                 stopListening()
                 
+                clearTimeout(inactivityTimer);
+                
                 active = true;
                 
                 if (onActive) {
