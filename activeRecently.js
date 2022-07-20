@@ -18,6 +18,7 @@ function init(options)
     function stopListening()
     {
         if (proc) {
+            proc._intentiallyStoppingListener = true;
             proc.kill();
         }
     }
@@ -77,10 +78,25 @@ function init(options)
         if (debugging) {
             console.log("Listening", (new Date()).toString());
         }
+        
+        proc.on("exit", function ()
+        {
+            if (debugging) {
+                console.log("xinput exited", (new Date()).toString());
+            }
+            /// Did the program exit prematurely?
+            if (!proc._intentiallyStoppingListener) {
+                if (debugging) {
+                    console.log("process closed unexpectedly! Restarting now.");
+                }
+                delayCheck(400);
+            }
+        });
     }
     
     function delayCheck(wait)
     {
+        clearTimeout(delayCheckTimer);
         delayCheckTimer = setTimeout(check, wait || checkTime);
     }
     
