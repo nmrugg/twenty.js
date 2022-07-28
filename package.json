@@ -2,7 +2,7 @@
   "author": "Nathan Rugg <nmrugg@gmail.com>",
   "name": "twenty.js",
   "description": "The 20-20-20 rule notifier to prevent eye strain: (Every 20 minutes, look at something 20 feet away for 20 seconds)",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "repository": {
     "type": "git",
     "url": "git://github.com/nmrugg/twenty.js.git"
