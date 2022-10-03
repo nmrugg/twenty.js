@@ -13,6 +13,7 @@ var waitTimeBetweenLooks;
 var lookDuration;
 var notifyVolumeLevel;
 var config;
+var binPath;
 var programs = {
     audio: [
         "play",
@@ -20,6 +21,7 @@ var programs = {
         "mplayer",
         "ffplay",
         "audacious",
+        "vlc",
     ],
     notify: [
         "notify-send",
@@ -40,23 +42,31 @@ var warnings = {
 
 function playAudio(audioFilePath)
 {
-    child_process.execFile("/usr/bin/play", [audioFilePath], {stdio: "pipe"}, function (err)
+    child_process.execFile(binPath + "play", [audioFilePath], {stdio: "pipe"}, function (err)
     {
         if (err) {
-            child_process.execFile("/usr/bin/mpg123", [audioFilePath], {stdio: "pipe"}, function (err)
+            child_process.execFile(binPath + "mpg123", [audioFilePath], {stdio: "pipe"}, function (err)
             {
                 if (err) {
                     if (err) {
-                        child_process.execFile("/usr/bin/mplayer", [audioFilePath], {stdio: "pipe"}, function (err)
+                        child_process.execFile(binPath + "mplayer", [audioFilePath], {stdio: "pipe"}, function (err)
                         {
                             if (err) {
-                                child_process.execFile("/usr/bin/ffplay", ["-nodisp", "-autoexit", "-loglevel", "quiet", audioFilePath], {stdio: "ignore"}, function (err)
+                                child_process.execFile(binPath + "ffplay", ["-nodisp", "-autoexit", "-loglevel", "quiet", audioFilePath], {stdio: "ignore"}, function (err)
                                 {
                                     if (err) {
                                         if (err) {
-                                            child_process.execFile("/usr/bin/audacious", ["-Hq", audioFilePath], {stdio: "ignore"}, function (err)
+                                            child_process.execFile(binPath + "audacious", ["-Hq", audioFilePath], {stdio: "ignore"}, function (err)
                                             {
-                                                /// Cannot play audio.
+                                                if (err) {
+                                                    if (err) {
+                                                        /// `vlc --intf dummy FILE vlc://quit` could work too.
+                                                        child_process.execFile(binPath + "vlc", ["--intf", "dummy", "--play-and-exit", audioFilePath], {stdio: "ignore"}, function (err)
+                                                        {
+                                                            /// Cannot play audio.
+                                                        }).unref();
+                                                    }
+                                                }
                                             }).unref();
                                         }
                                     }
@@ -85,13 +95,13 @@ function textNotify(title, text)
     args.push('-h');
     args.push('string:x-canonical-private-synchronous:anything');
     
-    child_process.execFile("/usr/bin/notify-send", args, function (err)
+    child_process.execFile(binPath + "notify-send", args, function (err)
     {
         if (err) {
-            child_process.execFile("/usr/bin/zenity", ["--notification", "--text", text, "--timeout=5"], function (err)
+            child_process.execFile(binPath + "zenity", ["--notification", "--text", text, "--timeout=5"], function (err)
             {
                 if (err) {
-                    child_process.execFile("/usr/bin/xmessage", ["-timeout", "5", text], function (err)
+                    child_process.execFile(binPath + "xmessage", ["-timeout", "5", text], function (err)
                     {
                         /// Cannot send notification
                     });
@@ -123,7 +133,7 @@ function getVolumeLevel()
     var volume;
     
     try {
-        output = child_process.execFileSync("/usr/bin/amixer", {encoding: "utf8"});
+        output = child_process.execFileSync(binPath + "amixer", {encoding: "utf8"});
         match = output.match(/Master[\s\S]+?\[([\d.]+)%\]/);
         volume = Number(match[1]);
         if (volume >= 0) {
@@ -174,7 +184,7 @@ function getLocks()
     var matches;
     var locks = {};
     try {
-        data = child_process.execSync("/usr/bin/xset q", {encoding: "utf8", stdio: "pipe"});
+        data = child_process.execSync(binPath + "xset q", {encoding: "utf8", stdio: "pipe"});
     } catch (e) {}
     matches = data.match(/(\S+)\s+Lock:\s+(on|off)/ig);
     if (matches) {
@@ -361,13 +371,16 @@ function checkPrograms()
         var found = false;
         for (i = 0; i < len; ++i) {
             try {
-                child_process.execSync("command -v /usr/bin/" + programsArr[i]);
+                child_process.execSync("command -v " + binPath + programsArr[i]);
                 found = true;
                 break;
             } catch (e) {}
         }
         if (!found) {
             console.error(warnings[type]);
+            if (type === "audio" || type === "activity") {
+                process.exit();
+            }
         }
     });
 }
@@ -397,6 +410,11 @@ function init()
         config.silenceOn = config.silenceOn.toLowerCase().replace(/\s*lock$/, "");
     }
     
+    binPath = config.binPath || "/usr/bin/";
+    if (binPath.slice(-1) !== "/") {
+        binPath += "/";
+    }
+    
     waitTimeBetweenLooks = config.waitTimeBetweenLooks || 1000 * 60 * 20;
     lookDuration = config.lookDuration || 1000 * 20;
     config.debugging = Boolean(config.debugging);
@@ -406,6 +424,8 @@ function init()
     } else {
         notifyVolumeLevel = 75;
     }
+    
+    checkPrograms();
     
     activityChecker = require("./activeRecently.js")({
         checkTime: config.checkTime || 1000 * 60 * 5,
@@ -420,5 +440,4 @@ function init()
     start();
 }
 
-checkPrograms();
 init();
