@@ -16,12 +16,12 @@ var config;
 var binPath;
 var programs = {
     audio: [
-        "play",
         "mpg123",
         "mplayer",
         "ffplay",
         "audacious",
         "vlc",
+        "play",
     ],
     notify: [
         "notify-send",
@@ -42,40 +42,42 @@ var warnings = {
 
 function playAudio(audioFilePath)
 {
-    child_process.execFile(binPath + "play", [audioFilePath], {stdio: "pipe"}, function (err)
+    child_process.execFile(binPath + "mpg123", [audioFilePath], {stdio: "ignore"}, function (err)
     {
         if (err) {
-            child_process.execFile(binPath + "mpg123", [audioFilePath], {stdio: "pipe"}, function (err)
-            {
-                if (err) {
+            if (err) {
+                child_process.execFile(binPath + "mplayer", [audioFilePath], {stdio: "ignore"}, function (err)
+                {
                     if (err) {
-                        child_process.execFile(binPath + "mplayer", [audioFilePath], {stdio: "pipe"}, function (err)
+                        child_process.execFile(binPath + "ffplay", ["-nodisp", "-autoexit", "-loglevel", "quiet", audioFilePath], {stdio: "ignore"}, function (err)
                         {
                             if (err) {
-                                child_process.execFile(binPath + "ffplay", ["-nodisp", "-autoexit", "-loglevel", "quiet", audioFilePath], {stdio: "ignore"}, function (err)
-                                {
-                                    if (err) {
+                                if (err) {
+                                    child_process.execFile(binPath + "audacious", ["-Hq", audioFilePath], {stdio: "ignore"}, function (err)
+                                    {
                                         if (err) {
-                                            child_process.execFile(binPath + "audacious", ["-Hq", audioFilePath], {stdio: "ignore"}, function (err)
-                                            {
-                                                if (err) {
+                                            if (err) {
+                                                /// `vlc --intf dummy FILE vlc://quit` could work too.
+                                                child_process.execFile(binPath + "vlc", ["--intf", "dummy", "--play-and-exit", audioFilePath], {stdio: "ignore"}, function (err)
+                                                {
                                                     if (err) {
-                                                        /// `vlc --intf dummy FILE vlc://quit` could work too.
-                                                        child_process.execFile(binPath + "vlc", ["--intf", "dummy", "--play-and-exit", audioFilePath], {stdio: "ignore"}, function (err)
+                                                        child_process.execFile(binPath + "play", [audioFilePath], {stdio: "ignore"}, function (err)
                                                         {
-                                                            /// Cannot play audio.
+                                                            if (err) {
+                                                                /// Cannot play audio.
+                                                            }
                                                         }).unref();
                                                     }
-                                                }
-                                            }).unref();
+                                                }).unref();
+                                            }
                                         }
-                                    }
-                                }).unref();
+                                    }).unref();
+                                }
                             }
                         }).unref();
                     }
-                }
-            }).unref();
+                }).unref();
+            }
         }
     }).unref();
 }
