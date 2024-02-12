@@ -3,6 +3,7 @@
 "use strict";
 
 var child_process = require("child_process");
+var params = require("./getParams.js")(["install", "test", "colors", "no-colors", "debugging"]);
 var p;
 var isRunning = false;
 var waitTimer;
@@ -33,12 +34,31 @@ var programs = {
     activity: ["xinput"],
 };
 var warnings = {
-    audio: "Twenty.js is unable to play audio. Please install an audio player. Example: sudo apt-get install sox -y",
+    audio: "Twenty.js is unable to play audio. Please install an audio player. Example: sudo apt-get install mpg123 -y",
     notify: "Twenty.js is unable to send notifications. Please install a notifier. Example: sudo apt-get install notification-daemon -y",
     keys: "Twenty.js is unable to detect key lock status. Please install xset. Example: sudo apt-get install x11-xserver-utils -y",
     volume: "Twenty.js is unable to detect audio levels. Please install amixer. Example: sudo apt-get install alsa-utils -y",
-    activity: "Twenty.js is unable to listen for user activity. Please install xinput.",
+    activity: "Twenty.js is unable to listen for user activity. Please install xinput. Example: sudo apt-get install xinput -y",
 };
+
+function color(colorCode, str)
+{
+    if (!params["no-colors"] && (process.stdout.isTTY || params.colors)) {
+        str = "\u001B[" + colorCode + "m" + str + "\u001B[0m";
+    }
+    
+    return str;
+}
+
+function highlight(str)
+{
+    return color(33, str);
+}
+
+function note(str)
+{
+    return color(36, str);
+}
 
 function playAudio(audioFilePath)
 {
@@ -92,10 +112,12 @@ function textNotify(title, text)
         args.push(text)
     }
     
+    p = p || require("path");
+    
     /// Makes notify-osd less terrible by replacing the message instead of waiting.
     /// Better is to remove notify-osd: sudo apt-get remove notify-osd && pkill notify-osd && sudo apt-get install notification-daemon
-    args.push('-h');
-    args.push('string:x-canonical-private-synchronous:anything');
+    args.push("-h", "string:x-canonical-private-synchronous:anything");
+    args.push("-i", "/dev/null");
     
     child_process.execFile(binPath + "notify-send", args, function (err)
     {
@@ -156,7 +178,7 @@ function standbyDetector()
     var lastTime = Date.now();
     var waitTime = 1000 * 30;
     
-    if (config.debugging) {
+    if (params.debugging) {
         console.log("Starting standby detection", (new Date()).toString());
     }
     /// Clear the timer for good measure.
@@ -166,7 +188,7 @@ function standbyDetector()
         var time = Date.now();
         /// If there has been a big delay, the computer was probably in standby. So, stop and restart the timer.
         if (isRunning && time - (lastTime + waitTime) > 1000) {
-            if (config.debugging) {
+            if (params.debugging) {
                 console.log("Standby detected", (new Date()).toString());
             }
             /// Stop and restart when coming out of standby.
@@ -288,7 +310,7 @@ function onActive()
 function start()
 {
     if (!isRunning) {
-        if (config.debugging) {
+        if (params.debugging) {
             console.log("waiting...", (new Date()).toString());
         }
         isRunning = true;
@@ -300,7 +322,7 @@ function start()
             {
                 var time;
                 
-                if (config.debugging) {
+                if (params.debugging) {
                     console.log("Alerting to look", (new Date()).toString());
                 }
                 
@@ -311,13 +333,13 @@ function start()
                     /// We separate the notification and the loop so that it will always notify but not always loop (if it gets canceled)
                     secondNotifyTimer = setTimeout(function ()
                     {
-                        if (config.debugging) {
+                        if (params.debugging) {
                             console.log("done", (new Date()).toString());
                         }
                         
                         /// If there was a long pause, then the system may have been in stand by, so don't ring.
                         if (Date.now() - time > lookDuration * 1.5) {
-                            if (config.debugging) {
+                            if (params.debugging) {
                                 console.log("Long delay detected before the second notification; canceling.", (new Date()).toString());
                             }
                             return;
@@ -325,12 +347,12 @@ function start()
                         
                         if (!inSlienceMode()) {
                             notify("end");
-                        } else if (config.debugging) {
+                        } else if (params.debugging) {
                             console.log("Silence Mode on, not notifying", (new Date()).toString());
                         }
                         
                     }, lookDuration).unref();
-                } else if (config.debugging) {
+                } else if (params.debugging) {
                     console.log("Silence Mode on, not notifying", (new Date()).toString());
                 }
                 
@@ -347,7 +369,7 @@ function stop()
         isRunning = false;
         clearTimeout(waitTimer);
         clearInterval(standbyDetectorTimer);
-        if (config.debugging) {
+        if (params.debugging) {
             console.log("Clearing standby detection", (new Date()).toString());
             console.log("stopped");
         }
@@ -379,7 +401,7 @@ function checkPrograms()
             } catch (e) {}
         }
         if (!found) {
-            console.error(warnings[type]);
+            console.error(highlight("\nWARNING: " + warnings[type] + "\n"));
             if (type === "audio" || type === "activity") {
                 process.exit();
             }
@@ -387,7 +409,7 @@ function checkPrograms()
     });
 }
 
-if (process.argv[2] === "install") {
+if (params.install || params._.indexOf("install") > -1) {
     console.log("Installing twenty.js to start up automatically (in crontab)");
     install();
     runInBackground();
@@ -412,6 +434,13 @@ function init()
         config.silenceOn = config.silenceOn.toLowerCase().replace(/\s*lock$/, "");
     }
     
+    if (params.test) {
+        console.log(note("Entering Test Mode"));
+        config.waitTimeBetweenLooks = 1000;
+        config.lookDuration = 1000;
+        params.debugging = true;
+    }
+    
     binPath = config.binPath || "/usr/bin/";
     if (binPath.slice(-1) !== "/") {
         binPath += "/";
@@ -419,7 +448,10 @@ function init()
     
     waitTimeBetweenLooks = config.waitTimeBetweenLooks || 1000 * 60 * 20;
     lookDuration = config.lookDuration || 1000 * 20;
-    config.debugging = Boolean(config.debugging);
+    
+    if (typeof params.debugging !== "boolean") {
+        params.debugging = Boolean(config.debugging);
+    }
     
     if (config.notifyVolumeLevel && typeof config.notifyVolumeLevel === "number" && config.notifyVolumeLevel >= 0 && config.notifyVolumeLevel <= 100) {
         notifyVolumeLevel = config.notifyVolumeLevel;
@@ -436,7 +468,7 @@ function init()
         checkForNewDevices: false,
         onActive: onActive,
         onInactive: onInactive,
-        debugging: config.debugging,
+        debugging: params.debugging,
     });
     
     start();

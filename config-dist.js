@@ -1,5 +1,5 @@
 ///
-/// Rename this file to config.js and then uncomment and change the options below
+/// Copy this file and rename it to config.js, and then uncomment and change the options below.
 ///
 module.exports = {
     ///waitTimeBetweenLooks || 1000 * 60 * 20, /// How long to wait before notifying (default 20 minutes)
