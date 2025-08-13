@@ -4,7 +4,7 @@
 
 var child_process = require("child_process");
 var params = require("./getParams.js")(["install", "test", "colors", "no-colors", "debugging"]);
-var p;
+var p = require("path");
 var isRunning = false;
 var waitTimer;
 var standbyDetectorTimer;
@@ -112,8 +112,6 @@ function textNotify(title, text)
         args.push(text)
     }
     
-    p = p || require("path");
-    
     /// Makes notify-osd less terrible by replacing the message instead of waiting.
     /// Better is to remove notify-osd: sudo apt-get remove notify-osd && pkill notify-osd && sudo apt-get install notification-daemon
     args.push("-h", "string:x-canonical-private-synchronous:anything");
@@ -138,16 +136,25 @@ function textNotify(title, text)
 function audioNotify(type)
 {
     var audioFilePath;
-    p = p || require("path");
-    if (type === "start" && config.notifyStart) {
-        audioFilePath = config.notifyStart;
-    } else if (type !== "start" && config.notifyEnd) {
-        audioFilePath = config.notifyEnd;
-    } else {
-        audioFilePath = p.join(__dirname, (type === "start" ? "notify-start.mp3" : "notify-end.mp3"));
+    var useQuieter = getVolumeLevel() >= config.useQuiteSoundsAt;
+    
+    if (type === "start") {
+        if (useQuieter) {
+            audioFilePath = config.notifyStartQuiet;
+        } else {
+            audioFilePath = config.notifyStart;
+        }
+    } else if (type === "end") {
+        if (useQuieter) {
+            audioFilePath = config.notifyEndQuiet;
+        } else {
+            audioFilePath = config.notifyEnd;
+        }
     }
-    /// notification.mp3 is a public domain sound file from https://freesound.org/people/cabled_mess/sounds/349503/
-    playAudio(audioFilePath);
+    
+    if (audioFilePath) {
+        playAudio(audioFilePath);
+    }
 }
 
 function getVolumeLevel()
@@ -457,6 +464,22 @@ function init()
         notifyVolumeLevel = config.notifyVolumeLevel;
     } else {
         notifyVolumeLevel = 75;
+    }
+    if (typeof config.useQuiteSoundsAt !== "number") {
+        config.useQuiteSoundsAt = 75;
+    }
+    
+    if (typeof config.notifyStart !== "string") {
+        config.notifyStart = p.join(__dirname, "notify-start.mp3");
+    }
+    if (typeof config.notifyStartQuiet !== "string") {
+        config.notifyStartQuiet = p.join(__dirname, "notify-start-quiet.mp3");
+    }
+    if (typeof config.notifyEnd !== "string") {
+        config.notifyEnd = p.join(__dirname, "notify-end.mp3");
+    }
+    if (typeof config.notifyEndQuiet !== "string") {
+        config.notifyEndQuiet = p.join(__dirname, "notify-end-quiet.mp3");
     }
     
     checkPrograms();
