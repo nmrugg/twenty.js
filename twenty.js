@@ -136,7 +136,7 @@ function textNotify(title, text)
 function audioNotify(type)
 {
     var audioFilePath;
-    var useQuieter = getVolumeLevel() >= config.useQuiteSoundsAt;
+    var useQuieter = config.useQuiteSoundsAt >= 0 && getVolumeLevel() >= config.useQuiteSoundsAt;
     
     if (type === "start") {
         if (useQuieter) {
@@ -466,7 +466,7 @@ function init()
         notifyVolumeLevel = 75;
     }
     if (typeof config.useQuiteSoundsAt !== "number") {
-        config.useQuiteSoundsAt = 75;
+        config.useQuiteSoundsAt = -1;
     }
     
     if (typeof config.notifyStart !== "string") {

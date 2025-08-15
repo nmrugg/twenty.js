@@ -13,6 +13,6 @@ module.exports = {
     ///silenceOn: "", /// Disable notifications when certain keys have been pressed; options are "caps lock", "num lock", "scroll lock", "shift lock" to silence notifications when those are on (leave blank to disable)
     ///debugging: false, /// Print debugging info
     ///notifyVolumeLevel: 75, /// The volume level at which to send text notifications
-    ///useQuiteSoundsAt: 75, /// The volume level at which to reduce the volume level to play the quiter notifications
+    ///useQuiteSoundsAt: -1, /// The volume level at which to reduce the volume level to play the quiter notifications (-1 to disable quiet sound)
     ///binPath: "/usr/bin/", /// The base path to binary files
 };
