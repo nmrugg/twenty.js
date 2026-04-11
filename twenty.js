@@ -261,10 +261,16 @@ function isBlockingProgramRunning(list)
             cmd = parts.slice(10).join(" ");
             for (j = 0; j < listLen; ++j) {
                 if (list[j].test(cmd)) {
+                    if (params.debugging) {
+                        console.log("Found blocklist program: \"" + cmd + "\". Not notifying.");
+                    }
                     return true;
                 }
             }
         }
+    }
+    if (params.debugging) {
+        console.log("Did not find any blocklist program.");
     }
     return false;
 }
