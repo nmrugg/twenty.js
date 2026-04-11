@@ -14,7 +14,8 @@ var waitTimeBetweenLooks;
 var lookDuration;
 var notifyVolumeLevel;
 var config;
-var binPath;
+var binPath = "";
+var blocklist;
 var programs = {
     audio: [
         "mpg123",
@@ -32,6 +33,7 @@ var programs = {
     volume: ["amixer"],
     keys: ["xset"],
     activity: ["xinput"],
+    blocklist: ["ps"],
 };
 var warnings = {
     audio: "Twenty.js is unable to play audio. Please install an audio player. Example: sudo apt-get install mpg123 -y",
@@ -39,6 +41,7 @@ var warnings = {
     keys: "Twenty.js is unable to detect key lock status. Please install xset. Example: sudo apt-get install x11-xserver-utils -y",
     volume: "Twenty.js is unable to detect audio levels. Please install amixer. Example: sudo apt-get install alsa-utils -y",
     activity: "Twenty.js is unable to listen for user activity. Please install xinput. Example: sudo apt-get install xinput -y",
+    blocklist: "Twenty.js is unable to check for currently running processes. Please install ps. Example: sudo apt-get install procps -y",
 };
 
 function color(colorCode, str)
@@ -229,6 +232,43 @@ function getLocks()
     return locks;
 }
 
+
+function isBlockingProgramRunning(list)
+{
+    var stdout;
+    try {
+        stdout = child_process.execSync(binPath + "ps aux", {encoding: "utf8", stdio: "pipe"});
+    } catch (e) {console.log(e)}
+    
+    if (!stdout) {
+        return false;
+    }
+
+    var lines = stdout.trim().split("\n");
+    var processes = [];
+    var line;
+    var parts;
+    var cmd;
+    
+    var listLen = list.length;
+    var j;
+    
+    for (var i = 1; i < lines.length; i++) {
+        line = lines[i];
+        parts = line.split(/\s+/);
+
+        if (parts.length >= 10) {
+            cmd = parts.slice(10).join(" ");
+            for (j = 0; j < listLen; ++j) {
+                if (list[j].test(cmd)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 function inSlienceMode()
 {
     var locks;
@@ -238,6 +278,9 @@ function inSlienceMode()
         if (locks.num && config.silenceOn === "num" || locks.caps && config.silenceOn === "caps" || locks.caps && config.silenceOn === "cap" || locks.scroll && config.silenceOn === "scroll" || locks.shift && config.silenceOn === "shift") {
             return true;
         }
+    }
+    if (blocklist) {
+        return isBlockingProgramRunning(blocklist);
     }
     return false;
 }
@@ -396,6 +439,9 @@ function checkPrograms()
 {
     Object.keys(programs).forEach(function (type)
     {
+        if (type === "blocklist" && (!blocklist || !blocklist.length)) {
+            return; /// skip if not used.
+        }
         var programsArr = programs[type];
         var len = programsArr.length;
         var i;
@@ -448,7 +494,7 @@ function init()
         params.debugging = true;
     }
     
-    binPath = config.binPath || "/usr/bin/";
+    binPath = (config.binPath ?? "/usr/bin/") || "";
     if (binPath.slice(-1) !== "/") {
         binPath += "/";
     }
@@ -480,6 +526,17 @@ function init()
     }
     if (typeof config.notifyEndQuiet !== "string") {
         config.notifyEndQuiet = p.join(__dirname, "notify-end-quiet.mp3");
+    }
+    if (config.blocklist && Array.isArray(config.blocklist)) {
+        blocklist = [];
+        config.blocklist.forEach(function (item)
+        {
+            if (typeof item === "object" && typeof item.test === "function") {
+                blocklist.push(item);
+            } else {
+                blocklist.push(new RegExp("\\b" + item + "\\b"));
+            }
+        });
     }
     
     checkPrograms();

@@ -15,4 +15,5 @@ module.exports = {
     ///notifyVolumeLevel: 75, /// The volume level at which to send text notifications
     ///useQuiteSoundsAt: -1, /// The volume level at which to reduce the volume level to play the quiter notifications (-1 to disable quiet sound)
     ///binPath: "/usr/bin/", /// The base path to binary files
+    ///blocklist: [], /// Don't play any sounds if these programs are running. (Can be strings or regular expressions; e.g., "app" or /\bapp\b/ would be identical.)
 };
