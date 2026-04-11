@@ -34,7 +34,9 @@ var programs = {
     keys: ["xset"],
     activity: ["xinput"],
     blocklist: ["ps"],
+    blocklistTitles: ["wmctrl"],
 };
+
 var warnings = {
     audio: "Twenty.js is unable to play audio. Please install an audio player. Example: sudo apt-get install mpg123 -y",
     notify: "Twenty.js is unable to send notifications. Please install a notifier. Example: sudo apt-get install notification-daemon -y",
@@ -42,6 +44,7 @@ var warnings = {
     volume: "Twenty.js is unable to detect audio levels. Please install amixer. Example: sudo apt-get install alsa-utils -y",
     activity: "Twenty.js is unable to listen for user activity. Please install xinput. Example: sudo apt-get install xinput -y",
     blocklist: "Twenty.js is unable to check for currently running processes. Please install ps. Example: sudo apt-get install procps -y",
+    blocklistTitles: "Twenty.js is unable to check window titles of currently running processes. Please install wmctrl. Example: sudo apt-get install wmctrl -y",
 };
 
 function color(colorCode, str)
@@ -238,42 +241,98 @@ function isBlockingProgramRunning(list)
     var stdout;
     try {
         stdout = child_process.execSync(binPath + "ps aux", {encoding: "utf8", stdio: "pipe"});
-    } catch (e) {console.log(e)}
     
-    if (!stdout) {
-        return false;
-    }
-
-    var lines = stdout.trim().split("\n");
-    var processes = [];
-    var line;
-    var parts;
-    var cmd;
+        if (!stdout) {
+            return false;
+        }
     
-    var listLen = list.length;
-    var j;
+        var lines = stdout.trim().split("\n");
+        var linesLen = lines.length;
+        var processes = [];
+        var line;
+        var parts;
+        var cmd;
+        
+        var listLen = list.length;
+        var j;
+        
+        for (var i = 1; i < linesLen; ++i) {
+            line = lines[i];
+            parts = line.split(/\s+/);
     
-    for (var i = 1; i < lines.length; i++) {
-        line = lines[i];
-        parts = line.split(/\s+/);
-
-        if (parts.length >= 10) {
-            cmd = parts.slice(10).join(" ");
-            for (j = 0; j < listLen; ++j) {
-                if (list[j].test(cmd)) {
-                    if (params.debugging) {
-                        console.log("Found blocklist program: \"" + cmd + "\". Not notifying.");
+            if (parts.length >= 10) {
+                cmd = parts.slice(10).join(" ");
+                for (j = 0; j < listLen; ++j) {
+                    if (list[j].test(cmd)) {
+                        if (params.debugging) {
+                            console.log("Found blocklist program: \"" + cmd + "\".");
+                        }
+                        return true;
                     }
-                    return true;
                 }
             }
         }
+    } catch (e) {
+        if (params.debugging) {
+            console.error(e);
+        }
     }
+    
     if (params.debugging) {
-        console.log("Did not find any blocklist program.");
+        console.log("Did not find any blocklist programs by file name. Checking titles now.");
+    }
+    return checkWindowTitles(list);
+}
+
+function checkWindowTitles(list)
+{
+    var lines;
+    var line;
+    var title;
+    var parts;
+    var linesLen;
+    var listLen = list.length;
+    var i;
+    var j;
+    
+    try {
+        var stdout = child_process.execSync("wmctrl -l", {encoding: "utf8", stdio: "pipe"});
+        if (!stdout) {
+            return false;
+        }
+
+        lines = stdout.trim().split("\n");
+        linesLen = lines.length;
+        
+        for (i = 0; i < linesLen; ++i) {
+            line = lines[i];
+            // wmctrl -l format: PID 0 Workspace PID Title
+            parts = line.trim().split(/\s+/);
+            if (parts.length >= 4) {
+                title = parts.slice(3).join(" ");
+                for (j = 0; j < listLen; ++j) {
+                    if (list[j].test(title)) {
+                        if (params.debugging) {
+                            console.log("Found blocklist window title: \"" + title + "\".");
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        // wmctrl not available or failed
+        if (params.debugging) {
+            console.error(e);
+        }
+    }
+
+    if (params.debugging) {
+        console.log("Did not find any blocklisted window titles.");
     }
     return false;
 }
+
 
 function inSlienceMode()
 {
@@ -445,7 +504,7 @@ function checkPrograms()
 {
     Object.keys(programs).forEach(function (type)
     {
-        if (type === "blocklist" && (!blocklist || !blocklist.length)) {
+        if ((type === "blocklist" || type === "blocklistTitles") && (!blocklist || !blocklist.length)) {
             return; /// skip if not used.
         }
         var programsArr = programs[type];
