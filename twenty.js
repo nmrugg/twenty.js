@@ -559,7 +559,7 @@ function init()
         params.debugging = true;
     }
     
-    binPath = (config.binPath ?? "/usr/bin/") || "";
+    binPath = typeof config.binPath === "string" ? config.binPath : "/usr/bin/";
     if (binPath.slice(-1) !== "/") {
         binPath += "/";
     }
