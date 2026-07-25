@@ -26,8 +26,9 @@ var programs = {
         "play",
     ],
     notify: [
-        "notify-send",
+        "clarion",
         "zenity",
+        "notify-send",
         "xmessage",
     ],
     volume: ["amixer"],
@@ -39,7 +40,7 @@ var programs = {
 
 var warnings = {
     audio: "Twenty.js is unable to play audio. Please install an audio player. Example: sudo apt-get install mpg123 -y",
-    notify: "Twenty.js is unable to send notifications. Please install a notifier. Example: sudo apt-get install notification-daemon -y",
+    notify: "Twenty.js is unable to send notifications. Please install a notifier. Example: sudo apt-get install zenity -y",
     keys: "Twenty.js is unable to detect key lock status. Please install xset. Example: sudo apt-get install x11-xserver-utils -y",
     volume: "Twenty.js is unable to detect audio levels. Please install amixer. Example: sudo apt-get install alsa-utils -y",
     activity: "Twenty.js is unable to listen for user activity. Please install xinput. Example: sudo apt-get install xinput -y",
@@ -118,20 +119,26 @@ function textNotify(title, text)
         args.push(text)
     }
     
-    /// Makes notify-osd less terrible by replacing the message instead of waiting.
-    /// Better is to remove notify-osd: sudo apt-get remove notify-osd && pkill notify-osd && sudo apt-get install notification-daemon
-    args.push("-h", "string:x-canonical-private-synchronous:anything");
-    args.push("-i", "/dev/null");
     
-    child_process.execFile(binPath + "notify-send", args, function (err)
+    child_process.execFile(binPath + "clarion", ["--title", title, "--text", text, "--timeout=5"], function (err)
     {
         if (err) {
             child_process.execFile(binPath + "zenity", ["--notification", "--text", text, "--timeout=5"], function (err)
             {
                 if (err) {
-                    child_process.execFile(binPath + "xmessage", ["-timeout", "5", text], function (err)
+                    /// Makes notify-osd less terrible by replacing the message instead of waiting.
+                    /// Better is to remove notify-osd: sudo apt-get remove notify-osd && pkill notify-osd && sudo apt-get install notification-daemon
+                    args.push("-h", "string:x-canonical-private-synchronous:anything");
+                    args.push("-i", "/dev/null");
+                    args.push("-e"); /// -e is for "transient" to make it not stay in the logger
+                    child_process.execFile(binPath + "notify-send", args, function (err)
                     {
-                        /// Cannot send notification
+                        if (err) {
+                            child_process.execFile(binPath + "xmessage", ["-timeout", "5", text], function (err)
+                            {
+                                /// Cannot send notification
+                            });
+                        }
                     });
                 }
             });
@@ -560,7 +567,7 @@ function init()
     }
     
     binPath = typeof config.binPath === "string" ? config.binPath : "/usr/bin/";
-    if (binPath.slice(-1) !== "/") {
+    if (binPath && binPath.slice(-1) !== "/") {
         binPath += "/";
     }
     
