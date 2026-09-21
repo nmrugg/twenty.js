@@ -16,6 +16,7 @@ var notifyVolumeLevel;
 var config;
 var binPath = "";
 var blocklist;
+var notificationTitle = "👀 20-20-20";
 var programs = {
     audio: [
         "mpg123",
@@ -368,12 +369,12 @@ function notify(type)
         if (type === "end") {
             textMessage = "Carry on. :)";
         } else {
-            textMessage = "Stop and focus on something twenty feet away for 20sec.";
+            textMessage = "Focus on something 20 feet away for 20 sec.";
             if (volume < 100) {
-                textMessage += "\n(Turn your volume up if you want to hear when time's up.)";
+                textMessage += "\n(You may need to turn your volume up.)";
             }
         }
-        textNotify("20-20-20", textMessage);
+        textNotify(notificationTitle, textMessage);
     }
 }
 
@@ -609,6 +610,10 @@ function init()
                 blocklist.push(new RegExp("\\b" + item + "\\b"));
             }
         });
+    }
+    
+    if (config.notificationTitle) {
+        notificationTitle = config.notificationTitle;
     }
     
     checkPrograms();
