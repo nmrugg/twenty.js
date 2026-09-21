@@ -600,9 +600,10 @@ function init()
     if (typeof config.notifyEndQuiet !== "string") {
         config.notifyEndQuiet = p.join(__dirname, "notify-end-quiet.mp3");
     }
-    if (config.blocklist && Array.isArray(config.blocklist)) {
+    var blockListToLoad = config.blocklist || ["obs", "zoom"];
+    if (blockListToLoad && Array.isArray(blockListToLoad)) {
         blocklist = [];
-        config.blocklist.forEach(function (item)
+        blockListToLoad.forEach(function (item)
         {
             if (typeof item === "object" && typeof item.test === "function") {
                 blocklist.push(item);
